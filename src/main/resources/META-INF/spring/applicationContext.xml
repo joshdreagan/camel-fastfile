@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+  <bean id="bridgePropertyPlaceholder" class="org.apache.camel.spring.spi.BridgePropertyPlaceholderConfigurer">
+    <property name="locations">
+      <list>
+        <value>classpath:org.apache.camel.examples.fastfile.properties</value>
+        <value>file:${configFile}</value>
+      </list>
+    </property>
+    <property name="ignoreResourceNotFound" value="true"/>
+    <property name="searchSystemEnvironment" value="true"/>
+    <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE"/>
+  </bean>
+
+  <bean id="fileReadLockStrategy" class="org.apache.camel.component.file.strategy.CachedFileChangedExclusiveReadLockStrategy"/>
+
+  <bean id="sftpReadLockStrategy" class="org.apache.camel.component.file.remote.strategy.CachedSftpChangedExclusiveReadLockStrategy"/>
+
+  <bean id="ftpReadLockStrategy" class="org.apache.camel.component.file.remote.strategy.CachedFtpChangedExclusiveReadLockStrategy"/>
+
+  <camelContext id="camelContext" trace="false" xmlns="http://camel.apache.org/schema/spring">
+
+    <route id="fileConsumerRoute" autoStartup="true">
+      <from uri="file://{{fileConsumer.path}}?delete=true&amp;delay={{fileConsumer.delay}}&amp;exclusiveReadLockStrategy=#fileReadLockStrategy"/>
+      <log message="Consumed file: [${headers[CamelFileName]}]."/>
+    </route>
+
+    <route id="sftpConsumerRoute" autoStartup="false">
+      <from uri="sftp://{{sftpConsumer.host}}:{{sftpConsumer.port}}/{{sftpConsumer.path}}?username={{sftpConsumer.username}}&amp;password=RAW({{sftpConsumer.password}})&amp;delete=true&amp;delay={{sftpConsumer.delay}}&amp;exclusiveReadLockStrategy=#sftpReadLockStrategy"/>
+      <log message="Consumed SFTP: [${headers[CamelFileName]}]."/>
+    </route>
+
+    <route id="ftpConsumerRoute" autoStartup="false">
+      <from uri="ftp://{{ftpConsumer.host}}:{{ftpConsumer.port}}/{{ftpConsumer.path}}?username={{ftpConsumer.username}}&amp;password=RAW({{ftpConsumer.password}})&amp;delete=true&amp;delay={{ftpConsumer.delay}}&amp;exclusiveReadLockStrategy=#ftpReadLockStrategy"/>
+      <log message="Consumed FTP: [${headers[CamelFileName]}]."/>
+    </route>
+
+  </camelContext>
+
+</beans>
